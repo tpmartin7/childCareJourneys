@@ -1,0 +1,15 @@
+package childCareJourney;
+
+public enum EStatus {
+	REFERRAL,
+	ASSESSMENT_START,
+	ASSESSMENT_END,
+	CIN_START,
+	CIN_END,
+	S47_START,
+	S47_END,
+	CPP_START,
+	CPP_END,
+	LAC_START,
+	LAC_END
+}
