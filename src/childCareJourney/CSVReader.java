@@ -6,42 +6,110 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.TreeMap;
 
 public class CSVReader {
 
 	public static void main(String[] args) {
-		String defaultPath = "C:\\users\\tpmar\\Documents\\KCL_Project\\";
+		String defaultPath = "data\\";
 		if (args.length > 0) {
 			defaultPath = args[0];
 		}
 		
-		List<List<String>> 	referralCsvMap = scanCsv(Paths.get(defaultPath + "sampleReferral.csv")),
-							assessmentCsvMap = scanCsv(Paths.get(defaultPath + "sampleAssessment.csv")),
+		HashMap<Integer, TreeMap<Date, Referral>> referrals = new HashMap<Integer, TreeMap<Date, Referral>>();
+		
+		List<List<String>> 	referralCsvMap = scanCsv(Paths.get(defaultPath + "Referrals1.csv"));
+							/*assessmentCsvMap = scanCsv(Paths.get(defaultPath + "sampleAssessment.csv")),
 							cinCsvMap = scanCsv(Paths.get(defaultPath + "sampleCin.csv")),
 							cppCsvMap = scanCsv(Paths.get(defaultPath + "sampleCpp.csv")),
 							lacCsvMap = scanCsv(Paths.get(defaultPath + "sampleLac.csv")),
-							s47CsvMap = scanCsv(Paths.get(defaultPath + "sampleS47.csv"));
+							s47CsvMap = scanCsv(Paths.get(defaultPath + "sampleS47.csv"));*/
 		
 		
-		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yy"); // US date format
+		SimpleDateFormat usaDateFormat2digitYear = new SimpleDateFormat("MM/dd/yy"); // US date format
 		
-		List<Integer> idList = new ArrayList<>();
-		List<Journey> journeyList = new ArrayList<>();
-		for(List<String> nextRow : referralCsvMap) {
-			if(nextRow.get(0).equals("id"))
-				continue;
-			Integer id = Integer.parseInt(nextRow.get(0));
-			idList.add(id);
+		//List<Integer> idList = new ArrayList<>();
+		//List<Journey> journeyList = new ArrayList<>();
+		
+		for(int i = 1; i < referralCsvMap.size(); i++) {
+			List<String> nextRow = referralCsvMap.get(i);
+			Integer id;
+			try{ 
+				id = Integer.parseInt(nextRow.get(0));
+				//idList.add(id);
+			}
+			catch(NumberFormatException e){ 
+				continue; 
+			}
 			try {
-				journeyList.add(new Journey(id,sdf.parse(nextRow.get(1))));
+				Integer age;
+				if(nextRow.get(1).equals("")) {
+					age = -1;
+				}
+				else age = Integer.parseInt(nextRow.get(1));
+				
+				String genderString = nextRow.get(2);
+				EGender gender;
+				if(genderString.startsWith("M")) gender = EGender.MALE;
+				else if(genderString.startsWith("F")) gender = EGender.FEMALE;
+				else gender = EGender.UNKNOWN;
+				
+				String ethnicityString = nextRow.get(3);
+				EEthnicity ethnicity;
+				if(ethnicityString.contains("White")) ethnicity = EEthnicity.WHITE;
+				else if(ethnicityString.contains("Black")) ethnicity = EEthnicity.BLACK;
+				else if(ethnicityString.contains("Asian")) ethnicity = EEthnicity.ASIAN;
+				else if(ethnicityString.contains("Chinese")) ethnicity = EEthnicity.ORIENTAL;
+				else if(ethnicityString.contains("Mixed")) ethnicity = EEthnicity.MIXED;
+				else if(ethnicityString.contains("Other")) ethnicity = EEthnicity.OTHER;
+				else ethnicity = EEthnicity.UNKOWN;
+				
+				//Detect ward here
+				
+				Date date = usaDateFormat2digitYear.parse(nextRow.get(5));
+				if(referrals.containsKey(id)) {
+					referrals.get(id).put(date, new Referral(id, age, gender, ethnicity, EWard.ALEXANDRA, date));
+				}
+				else {
+					TreeMap<Date, Referral> newMap = new TreeMap<Date, Referral>();
+					newMap.put(date, new Referral(id, age, gender, ethnicity, EWard.ALEXANDRA, date));
+					referrals.put(id, newMap);
+				}
+				//journeyList.add(new Journey(id,sdf.parse(nextRow.get(5))));
 			} catch (ParseException e) {
 				System.err.println(e.getMessage());
 				e.printStackTrace();
 			}
 		}
-
+		
+		System.out.println(referrals.size() + " individuals added.");
+		System.out.println(referralCsvMap.size() - 1 + " total referrals.");
+		
+		/*
+		referralCsvMap = scanCsv(Paths.get(defaultPath + "Referrals2.csv"));
+		for(List<String> nextRow : referralCsvMap) {
+			Integer id;
+			try{ 
+				id = Integer.parseInt(nextRow.get(0));
+				idList.add(id);
+			}
+			catch(NumberFormatException e){ 
+				continue; 
+			}
+			try {
+				journeyList.add(new Journey(id,sdf.parse(nextRow.get(5))));
+			} catch (ParseException e) {
+				System.err.println(e.getMessage());
+				e.printStackTrace();
+			}
+		}
+		System.out.println(journeyList.size() + " records added");
+/*
 		int i = 0;
 		
 		for(Integer nextId : idList) {
@@ -108,7 +176,7 @@ public class CSVReader {
 			i++;
 		}
 		
-		new ChartJourney(journeyList);
+		new ChartJourney(journeyList);*/
 	}
 	
 	public static List<List<String>> scanCsv(Path filePath){
