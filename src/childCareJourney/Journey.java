@@ -3,7 +3,7 @@ package childCareJourney;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -12,22 +12,24 @@ import java.util.concurrent.TimeUnit;
 public class Journey {
 	
 	private int id;
-	private Map<Integer, EStatus> journeyMap;
+	private Map<Date, EStatus> journeyMap;
 	private Date journeyStartDate;
 	
-	public Journey(int id, Date startDate) {
+	public Journey(int id) {
 		this.id = id;
-		this.journeyStartDate = startDate;
-		journeyMap = new HashMap<Integer, EStatus>();
+		journeyMap = new TreeMap<Date, EStatus>();
 	}
 	
-	public void updateAssessment(Date assessmentStart, Date assessmentEnd) {
-		int startDay = (int)TimeUnit.MILLISECONDS.toDays(assessmentStart.getTime() - journeyStartDate.getTime());
-		journeyMap.put(startDay, EStatus.ASSESSMENT_START);
-		int endDay = (int)TimeUnit.MILLISECONDS.toDays(assessmentEnd.getTime() - journeyStartDate.getTime());
-		journeyMap.put(endDay, EStatus.ASSESSMENT_END);
+	public void updateReferrals(List<Date> referralDates) {
+		for(Date nextDate : referralDates)
+			journeyMap.put(nextDate, EStatus.REFERRAL);
 	}
 	
+	public void updateAssessment(Date start, Date end) {
+		journeyMap.put(start, EStatus.ASSESSMENT_START);
+		journeyMap.put(end, EStatus.ASSESSMENT_END);
+	}
+	/*
 	public void updateCIN(Date cinStart, Date cinEnd) {
 		int startDay = (int)TimeUnit.MILLISECONDS.toDays(cinStart.getTime() - journeyStartDate.getTime());
 		journeyMap.put(startDay, EStatus.CIN_START);
@@ -56,17 +58,7 @@ public class Journey {
 		journeyMap.put(endDay, EStatus.LAC_END);
 	}
 	
-	public String toString() {
-		StringBuilder sb = new StringBuilder("Journey for id " + this.id +"\n");
-		//TreeMap will sort the map by key
-		TreeMap<Integer, EStatus> tm = new TreeMap<Integer, EStatus>(journeyMap);
-		sb.append(tm);
-		return sb.toString();
-	}
-	
-	public Map<Integer, EStatus> getMap() {
-		return new TreeMap<Integer, EStatus>(journeyMap);
-	}
+
 	
 	public Double[] getXvals() {
 		TreeMap<Integer, EStatus> treeMap = new TreeMap<Integer, EStatus>(journeyMap);
@@ -87,9 +79,20 @@ public class Journey {
 		Double yVals[] = new Double[yValArrayList.size()];
 		return yValArrayList.toArray(yVals);
 	}
-	
+	*/
 	public int getID() {
 		return this.id;
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder("Journey for id " + this.id +"\n");
+		//TreeMap will sort the map by key
+		sb.append(journeyMap);
+		return sb.toString();
+	}
+	
+	public Map<Date, EStatus> getMap() {
+		return journeyMap;
 	}
 }
 
