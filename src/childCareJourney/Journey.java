@@ -42,30 +42,25 @@ public class Journey {
 		journeyMap.put(cinStart, EStatus.CIN_START);
 		journeyMap.put(cinEnd, EStatus.CIN_END);
 	}
-	/*
+	
 	public void updateS47(Date s47Start, Date s47End) {
-		int startDay = (int)TimeUnit.MILLISECONDS.toDays(s47Start.getTime() - journeyStartDate.getTime());
-		journeyMap.put(startDay, EStatus.S47_START);
-		int endDay = (int)TimeUnit.MILLISECONDS.toDays(s47End.getTime() - journeyStartDate.getTime());
-		journeyMap.put(endDay, EStatus.S47_END);
+		journeyMap.put(s47Start, EStatus.S47_START);
+		journeyMap.put(s47End, EStatus.S47_END);
 	}
 	
 	public void updateCpp(Date cppStart, Date cppEnd) {
-		int startDay = (int)TimeUnit.MILLISECONDS.toDays(cppStart.getTime() - journeyStartDate.getTime());
-		journeyMap.put(startDay, EStatus.CPP_START);
-		int endDay = (int)TimeUnit.MILLISECONDS.toDays(cppEnd.getTime() - journeyStartDate.getTime());
-		journeyMap.put(endDay, EStatus.CPP_END);
+		journeyMap.put(cppStart, EStatus.CPP_START);
+		journeyMap.put(cppEnd, EStatus.CPP_END);
 	}
 	
-	public void updateLac(Date lacStart, Date lacEnd) {
-		int startDay = (int)TimeUnit.MILLISECONDS.toDays(lacStart.getTime() - journeyStartDate.getTime());
-		journeyMap.put(startDay, EStatus.LAC_START);
-		int endDay = (int)TimeUnit.MILLISECONDS.toDays(lacEnd.getTime() - journeyStartDate.getTime());
-		journeyMap.put(endDay, EStatus.LAC_END);
+	public void updateLacStart(Date lacStart) {
+		journeyMap.put(lacStart, EStatus.LAC_START);
 	}
 	
-
-	
+	public void updateLacEnd(Date lacEnd) {
+		journeyMap.put(lacEnd, EStatus.LAC_END);
+	}
+	/*
 	public Double[] getXvals() {
 		TreeMap<Integer, EStatus> treeMap = new TreeMap<Integer, EStatus>(journeyMap);
 		ArrayList<Double> xValArrayList = new ArrayList<Double>();
