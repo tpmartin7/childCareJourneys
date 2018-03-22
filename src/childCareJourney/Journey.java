@@ -1,26 +1,34 @@
 package childCareJourney;
 
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 // Data structure to represent an individual child or a cohort's journey through the system.
 public class Journey {
 	
-	private int id;
+	private Integer id;
 	private Map<Date, EStatus> journeyMap;
 	private Date journeyStartDate;
 	
-	public Journey(int id) {
+	public Journey(Integer id) {
 		this.id = id;
 		journeyMap = new TreeMap<Date, EStatus>();
 	}
 	
-	public void updateReferrals(List<Date> referralDates) {
+	public Journey(Integer id, Set<Date> referralDates) {
+		this.id = id;
+		journeyMap = new TreeMap<Date, EStatus>();
+		updateReferrals(referralDates);
+	}
+	
+	public void updateReferrals(Set<Date> referralDates) {
 		for(Date nextDate : referralDates)
 			journeyMap.put(nextDate, EStatus.REFERRAL);
 	}
@@ -29,14 +37,12 @@ public class Journey {
 		journeyMap.put(start, EStatus.ASSESSMENT_START);
 		journeyMap.put(end, EStatus.ASSESSMENT_END);
 	}
-	/*
-	public void updateCIN(Date cinStart, Date cinEnd) {
-		int startDay = (int)TimeUnit.MILLISECONDS.toDays(cinStart.getTime() - journeyStartDate.getTime());
-		journeyMap.put(startDay, EStatus.CIN_START);
-		int endDay = (int)TimeUnit.MILLISECONDS.toDays(cinEnd.getTime() - journeyStartDate.getTime());
-		journeyMap.put(endDay, EStatus.CIN_END);
-	}
 	
+	public void updateCIN(Date cinStart, Date cinEnd) {
+		journeyMap.put(cinStart, EStatus.CIN_START);
+		journeyMap.put(cinEnd, EStatus.CIN_END);
+	}
+	/*
 	public void updateS47(Date s47Start, Date s47End) {
 		int startDay = (int)TimeUnit.MILLISECONDS.toDays(s47Start.getTime() - journeyStartDate.getTime());
 		journeyMap.put(startDay, EStatus.S47_START);
@@ -85,9 +91,14 @@ public class Journey {
 	}
 	
 	public String toString() {
+		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yy");
 		StringBuilder sb = new StringBuilder("Journey for id " + this.id +"\n");
-		//TreeMap will sort the map by key
-		sb.append(journeyMap);
+		for(Date nextDate : journeyMap.keySet()) {
+			sb.append(sdf.format(nextDate));
+			sb.append(" : ");
+			sb.append(journeyMap.get(nextDate));
+			sb.append("\n");
+		}
 		return sb.toString();
 	}
 	
