@@ -11,7 +11,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import javax.crypto.CipherInputStream;
 
 public class CSVReader {
 
@@ -23,25 +26,26 @@ public class CSVReader {
 		
 		HashMap<Integer, TreeMap<Date, Referral>> referrals = new HashMap<Integer, TreeMap<Date, Referral>>();
 		
-		List<List<String>> 	referralCsvMap = scanCsv(Paths.get(defaultPath + "Referrals1.csv"));
-							/*assessmentCsvMap = scanCsv(Paths.get(defaultPath + "sampleAssessment.csv")),
-							cinCsvMap = scanCsv(Paths.get(defaultPath + "sampleCin.csv")),
-							cppCsvMap = scanCsv(Paths.get(defaultPath + "sampleCpp.csv")),
+		List<List<String>> 	referralCsvMap = scanCsv(Paths.get(defaultPath + "Referrals1.csv")),
+							assessmentCsvMap = scanCsv(Paths.get(defaultPath + "AllAssessments.csv")),
+							cinCsvMap = scanCsv(Paths.get(defaultPath + "CIN.csv"));
+							/*cppCsvMap = scanCsv(Paths.get(defaultPath + "sampleCpp.csv")),
 							lacCsvMap = scanCsv(Paths.get(defaultPath + "sampleLac.csv")),
 							s47CsvMap = scanCsv(Paths.get(defaultPath + "sampleS47.csv"));*/
 		
 		
 		SimpleDateFormat usaDateFormat2digitYear = new SimpleDateFormat("MM/dd/yy"); // US date format
 		
-		//List<Integer> idList = new ArrayList<>();
-		//List<Journey> journeyList = new ArrayList<>();
+		Set<Integer> idList = new TreeSet<Integer>();
+		Map<Integer, Journey> allJourneyMap = new TreeMap<Integer, Journey>();
 		
 		for(int i = 1; i < referralCsvMap.size(); i++) {
 			List<String> nextRow = referralCsvMap.get(i);
 			Integer id;
 			try{ 
 				id = Integer.parseInt(nextRow.get(0));
-				//idList.add(id);
+				if(!idList.contains(id)) 
+					idList.add(id);
 			}
 			catch(NumberFormatException e){ 
 				continue; 
@@ -69,10 +73,14 @@ public class CSVReader {
 				else if(ethnicityString.contains("Other")) ethnicity = EEthnicity.OTHER;
 				else ethnicity = EEthnicity.UNKOWN;
 				
-				//Detect ward here
+//TODO: Detect ward here
 				
 				Date date = usaDateFormat2digitYear.parse(nextRow.get(5));
 				if(referrals.containsKey(id)) {
+					
+//TODO: Doesnt need to be new referral, change date in Referral type to a set 
+//and have referrals map to a single referral object
+					
 					referrals.get(id).put(date, new Referral(id, age, gender, ethnicity, EWard.ALEXANDRA, date));
 				}
 				else {
@@ -80,40 +88,124 @@ public class CSVReader {
 					newMap.put(date, new Referral(id, age, gender, ethnicity, EWard.ALEXANDRA, date));
 					referrals.put(id, newMap);
 				}
-				//journeyList.add(new Journey(id,sdf.parse(nextRow.get(5))));
 			} catch (ParseException e) {
 				System.err.println(e.getMessage());
 				e.printStackTrace();
 			}
 		}
 		
-		System.out.println(referrals.size() + " individuals added.");
-		System.out.println(referralCsvMap.size() - 1 + " total referrals.");
+		System.out.println(referralCsvMap.size() - 1 + " total referrals for " + referrals.size() + " unique IDs");
+		
+		for(Integer nextID : referrals.keySet()) {
+			Set<Date> referralDates = referrals.get(nextID).keySet();
+			allJourneyMap.put(nextID, new Journey(nextID,referralDates));
+		}
+		System.out.println(allJourneyMap.size() + " journeys created");
+		
+		//int i = 0;
+		
+		//Add assessment data to journey timelines
+		int noReferCount = 0;
+		Set<Integer> assIDlist = new TreeSet<Integer>();
+		for(int i = 1; i < assessmentCsvMap.size(); i++) {
+			List<String> nextRow = assessmentCsvMap.get(i);
+			Integer nextID = Integer.parseInt(nextRow.get(0));
+			if(!assIDlist.contains(nextID))
+				assIDlist.add(nextID);
+			String assessmentStartDateString = nextRow.get(1);
+			String assessmentEndDateString = nextRow.get(2);
+			
+			Date startDate;
+			Date endDate;
+			try {
+				if(assessmentStartDateString.equals(""))
+					startDate = new Date();
+				else
+					startDate = usaDateFormat2digitYear.parse(assessmentStartDateString);
+				if(assessmentEndDateString.equals(""))
+					endDate = new Date();
+				else
+					endDate = usaDateFormat2digitYear.parse(assessmentEndDateString);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				continue;
+			}
+			
+			if(allJourneyMap.containsKey(nextID)) {
+				allJourneyMap.get(nextID).updateAssessment(startDate, endDate);
+			} else {
+				noReferCount++;
+				Journey newJourney = new Journey(nextID);
+				newJourney.updateAssessment(startDate, endDate);
+				allJourneyMap.put(nextID, newJourney);
+				idList.add(nextID);
+			}
+		}
+		System.out.println(assessmentCsvMap.size() + " assessment records added for " + assIDlist.size() + " unique IDs.");
+		System.out.println(noReferCount + " assessments had no referral.");
+		System.out.println(allJourneyMap.size() + " journeys now created.");
+		
+
+//Add CIN records to journey timelines
+		int CINonly = 0;
+		Set<Integer> cinIDlist = new TreeSet<Integer>();
+		for (int i = 1; i < cinCsvMap.size(); i++) {
+			List<String> nextCSVrow = cinCsvMap.get(i);
+			Integer nextID = Integer.parseInt(nextCSVrow.get(0));
+			String cinStartString = nextCSVrow.get(1);
+			String cinEndString = nextCSVrow.get(2);
+			Date start, end;
+			if(cinStartString.equals(""))
+				start = new Date();
+			else {
+				try {
+					start = usaDateFormat2digitYear.parse(cinStartString);
+				}
+				catch(ParseException e) {
+					System.out.println(e);
+					continue;
+				}
+			}
+			if(cinEndString.equals(""))
+				end = new Date();
+			else {
+				try {
+					end = usaDateFormat2digitYear.parse(cinEndString);
+				}
+				catch(ParseException e) {
+					System.out.println(e);
+					continue;
+				}
+			}
+			
+			if(!idList.contains(nextID))
+			{
+				CINonly++;
+				idList.add(nextID);
+			}
+			if(!cinIDlist.contains(nextID))
+				cinIDlist.add(nextID);
+			if(!allJourneyMap.containsKey(nextID)) {
+				Journey newJourney = new Journey(nextID);
+				newJourney.updateCIN(start, end);
+				allJourneyMap.put(nextID, newJourney);
+			} else {
+				allJourneyMap.get(nextID).updateCIN(start, end);
+			}
+		}
+		System.out.println(cinCsvMap.size() + " total CIN records for " + cinIDlist.size() + " unique IDs.");
+		System.out.println(CINonly + " IDs appeared in CIN without referral or assessment.");
+		System.out.println(allJourneyMap.size() + " journeys now created.");
+		for (int i = 0; i < allJourneyMap.size(); i += 100) {
+			System.out.println(allJourneyMap.get(idList.toArray()[i]));
+		}
+		
 		
 		/*
-		referralCsvMap = scanCsv(Paths.get(defaultPath + "Referrals2.csv"));
-		for(List<String> nextRow : referralCsvMap) {
-			Integer id;
-			try{ 
-				id = Integer.parseInt(nextRow.get(0));
-				idList.add(id);
-			}
-			catch(NumberFormatException e){ 
-				continue; 
-			}
-			try {
-				journeyList.add(new Journey(id,sdf.parse(nextRow.get(5))));
-			} catch (ParseException e) {
-				System.err.println(e.getMessage());
-				e.printStackTrace();
-			}
-		}
-		System.out.println(journeyList.size() + " records added");
-/*
-		int i = 0;
 		
 		for(Integer nextId : idList) {
-			for(List<String> nextAssessmentRow : assessmentCsvMap) {
+			for(int i = 1; i < assessmentCsvMap.size(); i++) {
 				if(nextAssessmentRow.get(0).equals("id"))
 					continue;
 				if( Integer.parseInt(nextAssessmentRow.get(0)) == nextId ) {
@@ -125,6 +217,7 @@ public class CSVReader {
 					}
 				}
 			}
+		}/*
 			for(List<String> nextCinRow : cinCsvMap) {
 				if(nextCinRow.get(0).equals("id"))
 					continue;
