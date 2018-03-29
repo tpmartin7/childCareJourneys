@@ -15,19 +15,23 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 public class CSVReader {
+	//TODO: Use Guava tables where appropriate
+	private Map<Integer, TreeMap<Date, Referral>> referrals;
+	private Map<Integer, TreeMap<Date, CPP>> cppStore;
+	private Set<Integer> idList;
+	Map<Integer, Journey> allJourneyMap;
 
-	public static void main(String[] args) {
+	public CSVReader() {
 		String defaultPath = "data\\";
-		if (args.length > 0) {
-			defaultPath = args[0];
-		}
+		this.referrals = new HashMap<Integer, TreeMap<Date, Referral>>();
+		this.cppStore = new HashMap<Integer, TreeMap<Date,CPP>>();
+		this.idList = new TreeSet<Integer>();
+		this.allJourneyMap = new TreeMap<Integer, Journey>();
 		
-		HashMap<Integer, TreeMap<Date, Referral>> referrals = new HashMap<Integer, TreeMap<Date, Referral>>();
-		HashMap<Integer, TreeMap<Date, CPP>> cppStore = new HashMap<Integer, TreeMap<Date,CPP>>();
-		
-		List<List<String>> 	referralCsvMap = scanCsv(Paths.get(defaultPath + "Referrals1.csv")),
+		List<List<String>> 	referralCsvMap = scanCsv(Paths.get(defaultPath + "AllReferrals.csv")),
 							assessmentCsvMap = scanCsv(Paths.get(defaultPath + "AllAssessments.csv")),
 							cinCsvMap = scanCsv(Paths.get(defaultPath + "CIN.csv")),
 							cppCsvMap = scanCsv(Paths.get(defaultPath + "CPP.csv")),
@@ -38,8 +42,7 @@ public class CSVReader {
 		
 		SimpleDateFormat usaDateFormat2digitYear = new SimpleDateFormat("MM/dd/yy"); // US date format
 		
-		Set<Integer> idList = new TreeSet<Integer>();
-		Map<Integer, Journey> allJourneyMap = new TreeMap<Integer, Journey>();
+
 		
 		for(int i = 1; i < referralCsvMap.size(); i++) {
 			List<String> nextRow = referralCsvMap.get(i);
@@ -354,28 +357,59 @@ public class CSVReader {
 		}
 		System.out.println("LAC ends updated. " + allJourneyMap.size() + " journeys now created.");
 
-		// Prints a few random journeys.
-//		for (int i = 0; i < allJourneyMap.size(); i += 1500) {
-//			System.out.println(allJourneyMap.get(idList.toArray()[i]));
-//		}
-		
-		Set<Integer> completeJourneyIDs = new HashSet<Integer>();
+		Set<Integer> targetJourneyIDs = new HashSet<Integer>();
+
 		for(Integer nextID : allJourneyMap.keySet()) {
 			Journey nextJourney = allJourneyMap.get(nextID);
-			boolean gotEmAll = true;
-			for(EStatus nextStatus : EStatus.values()) {
-				if(!nextJourney.getMap().values().contains(nextStatus)){
-						gotEmAll = false;
+			Map<Date, EStatus> journeyMap = nextJourney.getMap();
+			Date[] keySet = new Date[journeyMap.size()];
+			journeyMap.keySet().toArray(keySet);
+			Date firstDate = keySet[0];
+			EStatus firstStatus = journeyMap.get(firstDate);
+			if(firstStatus == EStatus.REFERRAL)
+				targetJourneyIDs.add(nextID);
+		}
+		
+		Integer [] referralFirst = new Integer [targetJourneyIDs.size()];
+		targetJourneyIDs.toArray(referralFirst);
+		
+		int lacCount = 0;
+		long totalLength = 0;	
+		for(Integer nextID : referralFirst) {
+			Journey nextJourney = allJourneyMap.get(nextID);
+			Map<Date, EStatus> nextMap = nextJourney.getMap();
+			if(nextMap.containsValue(EStatus.LAC_START) && nextMap.containsValue(EStatus.LAC_END)) {
+				int entries = nextMap.size();
+				Date [] dates = new Date[entries];
+				nextMap.keySet().toArray(dates);
+				EStatus [] statuses = new EStatus [entries];
+				nextMap.values().toArray(statuses);
+				int startCount = 0,
+						endCount = 0;
+				for(EStatus nextStatus : statuses) {
+					if(nextStatus == EStatus.LAC_START)
+						startCount++;
+					else if(nextStatus == EStatus.LAC_END)
+						endCount++;
+				}
+				if(startCount == endCount) {
+					Date startDate = null, endDate;
+					for(int i = 0; i < entries; i++) {
+						if(statuses[i] == EStatus.LAC_START) {
+							startDate = dates[i];
+							lacCount++;
+						} else if (statuses[i] == EStatus.LAC_END && startDate != null) {
+							endDate = dates[i];
+							long length = TimeUnit.DAYS.convert((endDate.getTime() - startDate.getTime()), TimeUnit.MILLISECONDS);
+							System.out.print(length + " ");
+							totalLength += length;
+						}
+					}
 				}
 			}
-			if(gotEmAll) {
-				completeJourneyIDs.add(nextID);
-			}
 		}
-		System.out.println(completeJourneyIDs.size() + " journeys have all status types.");
-		for(Integer nextID : completeJourneyIDs) {
-			System.out.println(allJourneyMap.get(nextID));
-		}
+		System.out.println();
+		System.out.println("Average LAC length : " + (totalLength / lacCount) + " days");
 
 		//		new ChartJourney(journeyList);
 	}
@@ -423,5 +457,19 @@ public class CSVReader {
 		return result;
 	}
 	
-	
+	public Map<Integer, TreeMap<Date, Referral>> getReferrals() {
+		return referrals;
+	}
+
+	public Map<Integer, TreeMap<Date, CPP>> getCppStore() {
+		return cppStore;
+	}
+
+	public Set<Integer> getIdList() {
+		return idList;
+	}
+
+	public Map<Integer, Journey> getAllJourneyMap() {
+		return allJourneyMap;
+	}
 }
