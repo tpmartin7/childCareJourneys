@@ -18,11 +18,11 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 public class CSVReader {
-	//TODO: Use Guava tables where appropriate
+//TODO: Use Guava tables where appropriate
 	private Map<Integer, TreeMap<Date, Referral>> referrals;
 	private Map<Integer, TreeMap<Date, CPP>> cppStore;
 	private Set<Integer> idList;
-	Map<Integer, Journey> allJourneyMap;
+	private Map<Integer, Journey> allJourneyMap;
 
 	public CSVReader() {
 		String defaultPath = "data\\";
@@ -38,12 +38,9 @@ public class CSVReader {
 							s47CsvMap = scanCsv(Paths.get(defaultPath + "S47.csv")),
 							lacStartCsvMap = scanCsv(Paths.get(defaultPath + "LAC_start.csv")),
 							lacEndCsvMap = scanCsv(Paths.get(defaultPath + "LAC_end.csv"));
-		
-		
+				
 		SimpleDateFormat usaDateFormat2digitYear = new SimpleDateFormat("MM/dd/yy"); // US date format
-		
-
-		
+				
 		for(int i = 1; i < referralCsvMap.size(); i++) {
 			List<String> nextRow = referralCsvMap.get(i);
 			Integer id;
@@ -99,24 +96,15 @@ public class CSVReader {
 			}
 		}
 		
-		System.out.println(referralCsvMap.size() - 1 + " total referrals for " + referrals.size() + " unique IDs");
-		
 		for(Integer nextID : referrals.keySet()) {
 			Set<Date> referralDates = referrals.get(nextID).keySet();
 			allJourneyMap.put(nextID, new Journey(nextID,referralDates));
 		}
-		System.out.println(allJourneyMap.size() + " journeys created");
 		
-		//int i = 0;
-		
-		//Add assessment data to journey timelines
-		int noReferCount = 0;
-		Set<Integer> assIDlist = new TreeSet<Integer>();
+//Add assessment data to journey timelines
 		for(int i = 1; i < assessmentCsvMap.size(); i++) {
 			List<String> nextRow = assessmentCsvMap.get(i);
 			Integer nextID = Integer.parseInt(nextRow.get(0));
-			if(!assIDlist.contains(nextID))
-				assIDlist.add(nextID);
 			String assessmentStartDateString = nextRow.get(1);
 			String assessmentEndDateString = nextRow.get(2);
 			
@@ -124,37 +112,29 @@ public class CSVReader {
 			Date endDate;
 			try {
 				if(assessmentStartDateString.equals(""))
-					startDate = new Date();
+					startDate = new Date(1);
 				else
 					startDate = usaDateFormat2digitYear.parse(assessmentStartDateString);
 				if(assessmentEndDateString.equals(""))
-					endDate = new Date();
+					endDate = new Date(1);
 				else
 					endDate = usaDateFormat2digitYear.parse(assessmentEndDateString);
 			} catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.err.println(e);
 				continue;
 			}
 			
 			if(allJourneyMap.containsKey(nextID)) {
 				allJourneyMap.get(nextID).updateAssessment(startDate, endDate);
 			} else {
-				noReferCount++;
 				Journey newJourney = new Journey(nextID);
 				newJourney.updateAssessment(startDate, endDate);
 				allJourneyMap.put(nextID, newJourney);
 				idList.add(nextID);
 			}
 		}
-		System.out.println(assessmentCsvMap.size() + " assessment records added for " + assIDlist.size() + " unique IDs.");
-		System.out.println(noReferCount + " assessments had no referral.");
-		System.out.println(allJourneyMap.size() + " journeys now created.");
 		
-
 //Add CIN records to journey timelines
-		int CINonly = 0;
-		Set<Integer> cinIDlist = new TreeSet<Integer>();
 		for (int i = 1; i < cinCsvMap.size(); i++) {
 			List<String> nextCSVrow = cinCsvMap.get(i);
 			Integer nextID = Integer.parseInt(nextCSVrow.get(0));
@@ -162,18 +142,18 @@ public class CSVReader {
 			String cinEndString = nextCSVrow.get(2);
 			Date start, end;
 			if(cinStartString.equals(""))
-				start = new Date();
+				start = new Date(1);
 			else {
 				try {
 					start = usaDateFormat2digitYear.parse(cinStartString);
 				}
 				catch(ParseException e) {
-					System.out.println(e);
+					System.err.println(e);
 					continue;
 				}
 			}
 			if(cinEndString.equals(""))
-				end = new Date();
+				end = new Date(1);
 			else {
 				try {
 					end = usaDateFormat2digitYear.parse(cinEndString);
@@ -186,11 +166,8 @@ public class CSVReader {
 			
 			if(!idList.contains(nextID))
 			{
-				CINonly++;
 				idList.add(nextID);
 			}
-			if(!cinIDlist.contains(nextID))
-				cinIDlist.add(nextID);
 			if(!allJourneyMap.containsKey(nextID)) {
 				Journey newJourney = new Journey(nextID);
 				newJourney.updateCIN(start, end);
@@ -199,32 +176,24 @@ public class CSVReader {
 				allJourneyMap.get(nextID).updateCIN(start, end);
 			}
 		}
-		System.out.println(cinCsvMap.size() + " total CIN records for " + cinIDlist.size() + " unique IDs.");
-		System.out.println(CINonly + " IDs appeared in CIN without referral or assessment.");
-		System.out.println(allJourneyMap.size() + " journeys now created.");
 		
 //Add CPP records to journey timelines
-		int cppOnly = 0;
-		Set<Integer> cppIDlist = new TreeSet<Integer>();
 		for(int i=1; i<cppCsvMap.size(); i++) {
 			List<String> nextRow = cppCsvMap.get(i);
 			Integer nextID = Integer.parseInt(nextRow.get(0));
 			if(!idList.contains(nextID)) {
 				idList.add(nextID);
-				cppOnly++;
 			}
-			if(!cppIDlist.contains(nextID))
-				cppIDlist.add(nextID);
 			String startDateString = nextRow.get(1),
 					endDateString = nextRow.get(2);
 			Date startDate, endDate;
 			try {
 				if(startDateString.equals(""))
-					startDate = new Date();
+					startDate = new Date(1);
 				else
 					startDate = usaDateFormat2digitYear.parse(startDateString);
 				if(endDateString.equals(""))
-					endDate = new Date();
+					endDate = new Date(1);
 				else
 					endDate = usaDateFormat2digitYear.parse(endDateString);
 			} catch (ParseException e) {
@@ -256,33 +225,24 @@ public class CSVReader {
 				allJourneyMap.put(nextID, newJourney);
 			}
 		}
-		System.out.println(cppCsvMap.size() + " total CPP records for " + cppIDlist.size() + " unique IDs.");
-		System.out.println(cppOnly + " IDs appeared in CPP without CIN, referral, or assessment.");
-		System.out.println(allJourneyMap.size() + " journeys now created.");
 
-		
 //Add S47 data to journey timelines
-		int s47only = 0;
-		Set<Integer> s47IDs = new TreeSet<Integer>();
 		for(int i = 1; i < s47CsvMap.size(); i++) {
 			List<String> nextRow = s47CsvMap.get(i);
 			Integer nextID = Integer.parseInt(nextRow.get(0));
 			Date startDate, endDate;
 			if(!idList.contains(nextID)) {
-				s47only++;
 				idList.add(nextID);
 			}
-			if(!s47IDs.contains(nextID))
-				s47IDs.add(nextID);
 			String startDateString = nextRow.get(1),
 					endDateString = nextRow.get(2);
 			try {
 				if(startDateString.equals(""))
-					startDate = new Date();
+					startDate = new Date(1);
 				else
 					startDate = usaDateFormat2digitYear.parse(startDateString);
 				if(endDateString.equals(""))
-					endDate = new Date();
+					endDate = new Date(1);
 				else
 					endDate = usaDateFormat2digitYear.parse(endDateString);
 			} catch (ParseException e) {
@@ -297,13 +257,9 @@ public class CSVReader {
 				allJourneyMap.put(nextID, newJourney);
 			}
 		}
-		System.out.println(s47CsvMap.size() + " total s47 records for " + s47IDs.size() + " unique IDs.");
-		System.out.println(s47only + " IDs appeared in s47 without CPP, CIN, referral, or assessment.");
-		System.out.println(allJourneyMap.size() + " journeys now created.");
 
 //		Add LAC start dates to journey timelines.
 //TODO: Include data structure for other columns in LAC_start
-		
 		for(int i=1; i<lacStartCsvMap.size(); i++) {
 			List<String> nextRow = lacStartCsvMap.get(i);
 			Integer nextID = Integer.parseInt(nextRow.get(0));
@@ -325,7 +281,6 @@ public class CSVReader {
 				allJourneyMap.put(nextID, newJourney);
 			}
 		}
-		System.out.println("LAC starts updated. " + allJourneyMap.size() + " journeys now created.");
 		
 //		Add LAC end records to journey timelines.
 //		TODO: Create / update data structure to store other columns in LAC_end.
@@ -338,7 +293,7 @@ public class CSVReader {
 			String endDateString = nextRow.get(1);
 			Date endDate;
 			if(endDateString.equals(""))
-				endDate = new Date();
+				endDate = new Date(1);
 			else {
 				try {
 					endDate = usaDateFormat2digitYear.parse(endDateString);
@@ -355,63 +310,6 @@ public class CSVReader {
 				allJourneyMap.put(nextID, newJourney);
 			}					
 		}
-		System.out.println("LAC ends updated. " + allJourneyMap.size() + " journeys now created.");
-
-		Set<Integer> targetJourneyIDs = new HashSet<Integer>();
-
-		for(Integer nextID : allJourneyMap.keySet()) {
-			Journey nextJourney = allJourneyMap.get(nextID);
-			Map<Date, EStatus> journeyMap = nextJourney.getMap();
-			Date[] keySet = new Date[journeyMap.size()];
-			journeyMap.keySet().toArray(keySet);
-			Date firstDate = keySet[0];
-			EStatus firstStatus = journeyMap.get(firstDate);
-			if(firstStatus == EStatus.REFERRAL)
-				targetJourneyIDs.add(nextID);
-		}
-		
-		Integer [] referralFirst = new Integer [targetJourneyIDs.size()];
-		targetJourneyIDs.toArray(referralFirst);
-		
-		int lacCount = 0;
-		long totalLength = 0;	
-		for(Integer nextID : referralFirst) {
-			Journey nextJourney = allJourneyMap.get(nextID);
-			Map<Date, EStatus> nextMap = nextJourney.getMap();
-			if(nextMap.containsValue(EStatus.LAC_START) && nextMap.containsValue(EStatus.LAC_END)) {
-				int entries = nextMap.size();
-				Date [] dates = new Date[entries];
-				nextMap.keySet().toArray(dates);
-				EStatus [] statuses = new EStatus [entries];
-				nextMap.values().toArray(statuses);
-				int startCount = 0,
-						endCount = 0;
-				for(EStatus nextStatus : statuses) {
-					if(nextStatus == EStatus.LAC_START)
-						startCount++;
-					else if(nextStatus == EStatus.LAC_END)
-						endCount++;
-				}
-				if(startCount == endCount) {
-					Date startDate = null, endDate;
-					for(int i = 0; i < entries; i++) {
-						if(statuses[i] == EStatus.LAC_START) {
-							startDate = dates[i];
-							lacCount++;
-						} else if (statuses[i] == EStatus.LAC_END && startDate != null) {
-							endDate = dates[i];
-							long length = TimeUnit.DAYS.convert((endDate.getTime() - startDate.getTime()), TimeUnit.MILLISECONDS);
-							System.out.print(length + " ");
-							totalLength += length;
-						}
-					}
-				}
-			}
-		}
-		System.out.println();
-		System.out.println("Average LAC length : " + (totalLength / lacCount) + " days");
-
-		//		new ChartJourney(journeyList);
 	}
 	
 	public static List<List<String>> scanCsv(Path filePath){

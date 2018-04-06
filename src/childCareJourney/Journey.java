@@ -2,13 +2,13 @@ package childCareJourney;
 
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
+
+import org.jfree.data.category.CategoryDataset;
+import org.jfree.data.category.DefaultCategoryDataset;
 
 // Data structure to represent an individual child or a cohort's journey through the system.
 public class Journey {
@@ -99,6 +99,20 @@ public class Journey {
 	
 	public Map<Date, EStatus> getMap() {
 		return journeyMap;
+	}
+	
+	public CategoryDataset getDatasetForIndividualGraph() {
+		DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+		for(Date nextDate : journeyMap.keySet()) {
+			EStatus nextStatus = journeyMap.get(nextDate);
+			int ord = nextStatus.ordinal();
+			if(ord>0) {
+				ord++;
+				ord /= 2;
+			}
+			dataset.addValue(ord, id, nextDate);
+		}
+		return dataset;
 	}
 }
 
